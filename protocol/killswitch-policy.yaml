@@ -1,0 +1,198 @@
+# AI Kill Switch Protocol — Core Policy Definition
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Compliance: HIPAA 45 CFR 164.312, FDA 21 CFR Part 11, ISO 13485:2016
+
+metadata:
+  policy_id: AKSP-CORE-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  review_cycle: "90 days"
+  next_review: "2026-07-06"
+  regulatory_references:
+    - "HIPAA 45 CFR Part 164 — Security Rule"
+    - "FDA 21 CFR Part 11 — Electronic Records"
+    - "ISO 13485:2016 — Medical Device QMS"
+    - "ONC HTI-1 Final Rule 2024"
+    - "The Joint Commission Sentinel Event Policy"
+
+---
+
+policy_statement: |
+  Any AI agent or digital twin operating within a healthcare environment
+  under The Faulkner Group governance must have an active, tested, and
+  auditable kill switch mechanism. This mechanism must be capable of
+  halting agent/twin operations within defined SLA windows without data
+  loss, patient harm, or regulatory exposure. All halt events must be
+  logged immutably and reviewed within 24 hours of activation.
+
+---
+
+scope:
+  applies_to:
+    - ai_agents:
+        types:
+          - clinical_decision_support
+          - care_coordination
+          - autonomous_triage
+          - medical_coding
+          - prior_authorization
+          - patient_outreach
+          - pharmacy_verification
+    - digital_twins:
+        types:
+          - patient_in_silico
+          - population_health_model
+          - operational_workflow_twin
+          - hospital_capacity_twin
+          - surgical_simulation_twin
+  excludes:
+    - read_only_analytics_dashboards
+    - static_reporting_tools
+
+---
+
+trigger_conditions:
+
+  automated_triggers:
+    - id: AT-001
+      name: confidence_threshold_breach
+      description: Agent output confidence falls below defined minimum threshold
+      threshold_source: "/agents/confidence-threshold.yaml"
+      action: immediate_halt
+      tier: 0
+
+    - id: AT-002
+      name: hallucination_detection
+      description: Agent output contains clinically implausible or contradictory data
+      detection_method: "semantic_contradiction_check + clinical_ontology_validation"
+      action: immediate_halt
+      tier: 0
+
+    - id: AT-003
+      name: fhir_sync_failure
+      description: FHIR R4 data feed to digital twin fails validation for >2 consecutive cycles
+      threshold: 2
+      action: suspend_twin_updates
+      tier: 0
+
+    - id: AT-004
+      name: model_drift_exceeded
+      description: Population Stability Index (PSI) or KL divergence exceeds defined bounds
+      threshold_source: "/digital-twins/drift-detection.py"
+      action: suspend_twin_inference
+      tier: 0
+
+    - id: AT-005
+      name: iot_stream_anomaly
+      description: IoT/wearable data stream produces physiologically impossible values
+      examples:
+        - "HR > 300 bpm sustained"
+        - "SpO2 < 0% or > 100%"
+        - "Temperature > 115°F"
+      action: quarantine_stream_halt_dependent_agents
+      tier: 0
+
+    - id: AT-006
+      name: unauthorized_action_attempt
+      description: Agent attempts action outside its defined scope or permission boundary
+      action: immediate_halt_security_alert
+      tier: 0
+
+    - id: AT-007
+      name: latency_sla_breach
+      description: Agent response latency exceeds clinical SLA threshold for >3 consecutive calls
+      threshold_ms: 5000
+      consecutive_breaches: 3
+      action: graceful_halt
+      tier: 1
+
+    - id: AT-008
+      name: loop_runaway_detection
+      description: Agent or simulation enters infinite or unproductive loop
+      detection: "iteration_count_watchdog"
+      max_iterations: 50
+      action: immediate_halt
+      tier: 0
+
+  manual_triggers:
+    - id: MT-001
+      name: clinician_override
+      description: Authorized clinician manually halts agent via clinical interface
+      authority_roles: ["charge_rn", "hospitalist", "attending_physician", "cmio"]
+      tier: 1
+
+    - id: MT-002
+      name: cmio_directive
+      description: CMIO or CMO issues system-wide halt directive
+      authority_roles: ["cmio", "cmo", "cio"]
+      tier: 2
+
+    - id: MT-003
+      name: executive_shutdown
+      description: C-suite executive initiates full platform shutdown
+      authority_roles: ["cio", "ceo", "cso"]
+      tier: 3
+
+    - id: MT-004
+      name: regulatory_directive
+      description: External regulatory body (FDA, OIG, CMS) mandates halt
+      authority_roles: ["cio", "legal_counsel", "compliance_officer"]
+      tier: 3
+
+---
+
+halt_sla:
+  tier_0_auto_halt_ms: 500
+  tier_1_clinician_halt_ms: 5000
+  tier_2_cmio_halt_ms: 30000
+  tier_3_full_shutdown_min: 15
+
+---
+
+data_handling_on_halt:
+  in_flight_transactions:
+    action: "rollback_or_complete_then_halt"
+    max_completion_wait_ms: 2000
+  patient_data:
+    action: "preserve_in_place_no_writes_after_halt"
+  audit_logs:
+    action: "flush_immediately_to_immutable_store"
+  ehr_connections:
+    action: "graceful_disconnect_notify_ehr_system"
+
+---
+
+notification_requirements:
+  on_any_halt:
+    - notify: "on_call_clinician"
+      method: "pagerduty"
+      sla_min: 2
+    - notify: "cmio"
+      method: "sms + email"
+      sla_min: 5
+    - notify: "security_siem"
+      method: "syslog"
+      sla_sec: 30
+  on_tier_2_or_higher:
+    - notify: "cio"
+      method: "sms + email"
+      sla_min: 5
+    - notify: "legal_compliance"
+      method: "email"
+      sla_min: 10
+    - notify: "ehr_vendor_liaison"
+      method: "email"
+      sla_min: 30
+
+---
+
+testing_requirements:
+  frequency: "monthly"
+  test_types:
+    - automated_trigger_simulation
+    - manual_override_drill
+    - full_platform_shutdown_drill  # quarterly
+  documentation_required: true
+  test_log_location: "/governance/audit-logs/killswitch-tests/"
