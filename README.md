@@ -11,7 +11,7 @@
             ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝     ╚══════╝ ╚══╝╚══╝ ╚═╝   ╚═╝    ╚═════╝╚═╝  ╚═╝
 ```
 
-### AI Kill Switch Protocol
+### A.I. Kill Switch Protocol
 
 **The safety-critical, audit-defensible governance framework for AI agents and healthcare digital twins.**
 
