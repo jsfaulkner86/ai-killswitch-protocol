@@ -1,0 +1,80 @@
+# AI Kill Switch Protocol — FHIR Sync Validation Rules
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Compliance: HL7 FHIR R4, ONC HTI-1, HIPAA 45 CFR 164.312
+
+metadata:
+  config_id: AKSP-FHIR-SYNC-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  description: |
+    Validation rules applied to each FHIR R4 data feed cycle for registered
+    digital twins. Two consecutive validation failures trigger AT-003
+    (suspend_twin_updates).
+
+---
+
+global_validation_rules:
+
+  - rule_id: FSV-001
+    name: "FHIR Resource Completeness"
+    description: "Required FHIR resources must be present and non-null"
+    action_on_failure: "log_warning"
+    consecutive_failures_before_halt: 2
+
+  - rule_id: FSV-002
+    name: "Resource Timestamp Freshness"
+    description: "Observation and Encounter resources must have timestamps within acceptable staleness window"
+    max_staleness_minutes: 15
+    action_on_failure: "log_warning_then_halt"
+    consecutive_failures_before_halt: 2
+
+  - rule_id: FSV-003
+    name: "Patient ID Consistency"
+    description: "Patient resource IDs must be consistent across all resource types in feed"
+    action_on_failure: "immediate_halt"
+    consecutive_failures_before_halt: 1
+
+  - rule_id: FSV-004
+    name: "Observation Value Range Plausibility"
+    description: "Numeric observation values must fall within physiologically plausible ranges"
+    plausibility_rules_ref: "/integrations/iot-validator.py#plausibility_rules"
+    action_on_failure: "log_warning_then_halt"
+    consecutive_failures_before_halt: 2
+
+  - rule_id: FSV-005
+    name: "FHIR R4 Schema Conformance"
+    description: "All resources must conform to FHIR R4 base profiles"
+    validator: "HAPI FHIR Validator"
+    action_on_failure: "log_error_then_halt"
+    consecutive_failures_before_halt: 1
+
+  - rule_id: FSV-006
+    name: "Feed Availability"
+    description: "FHIR endpoint must respond within SLA window"
+    endpoint_timeout_ms: 5000
+    action_on_failure: "log_warning_then_halt"
+    consecutive_failures_before_halt: 2
+
+---
+
+per_twin_overrides:
+
+  twn-001:  # PatientTwin-ICU — strictest rules
+    max_staleness_minutes: 5   # ICU data must be near real-time
+    endpoint_timeout_ms: 3000
+
+  twn-002:  # OpsFlowTwin-ED
+    max_staleness_minutes: 10
+
+  twn-003:  # CapacityTwin-System
+    max_staleness_minutes: 20   # Capacity planning tolerates slightly older data
+
+---
+
+halt_trigger:
+  trigger_id: AT-003
+  action: "suspend_twin_updates"
+  notify: ["owning_team", "on_call_clinician", "cmio"]
+  resume_condition: "manual_validation_pass + watchdog_clearance"
