@@ -1,0 +1,74 @@
+# AI Kill Switch Protocol — Simulation Guard Configuration
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+
+metadata:
+  config_id: AKSP-SIM-GUARD-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  description: |
+    Simulation Guard enforces hard boundaries on digital twin simulations,
+    preventing runaway scenarios, unbounded resource consumption, and
+    clinically implausible simulation outputs from propagating to
+    clinical decision support layers.
+
+---
+
+global_sim_guard_rules:
+
+  execution_limits:
+    max_simulation_steps: 100000
+    max_wall_clock_seconds: 300
+    max_memory_mb: 4096
+    action_on_exceeded: "halt_simulation_log_event"
+
+  output_plausibility:
+    check_enabled: true
+    plausibility_rules_ref: "/integrations/iot-validator.py#plausibility_rules"
+    action_on_implausible_output: "quarantine_output_halt_simulation"
+
+  feedback_loop_detection:
+    enabled: true
+    max_identical_consecutive_outputs: 10
+    action_on_loop_detected: "halt_simulation_alert_owning_team"
+
+  output_propagation_gates:
+    gate_policy: "never_propagate_without_confidence_check"
+    confidence_ref: "/agents/confidence-threshold.yaml"
+    action_on_low_confidence: "hold_output_notify_clinician"
+
+---
+
+per_twin_overrides:
+
+  twn-001:  # PatientTwin-ICU
+    max_simulation_steps: 50000
+    max_wall_clock_seconds: 120
+    critical_output_fields:
+      - "predicted_sepsis_onset_hours"
+      - "predicted_deterioration_score"
+    critical_output_human_review_required: true
+
+  twn-002:  # OpsFlowTwin-ED
+    max_simulation_steps: 100000
+    max_wall_clock_seconds: 300
+    output_used_for:
+      - "bed_assignment_recommendation"
+      - "staffing_projection"
+    human_approval_before_action: true
+
+  twn-003:  # CapacityTwin-System
+    max_simulation_steps: 200000
+    max_wall_clock_seconds: 600
+    output_used_for:
+      - "enterprise_capacity_forecast"
+    human_approval_before_action: true
+
+---
+
+audit_requirements:
+  log_every_simulation_run: true
+  log_every_guard_trigger: true
+  log_destination: "/governance/audit-logs/sim-guard/"
+  retention_policy_ref: "/governance/data-retention-policy.md"
