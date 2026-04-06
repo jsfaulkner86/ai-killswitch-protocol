@@ -1,0 +1,89 @@
+# AI Kill Switch Protocol — Circuit Breaker Configuration
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Pattern: Fail-fast protection for AI agents in clinical environments
+
+metadata:
+  config_id: AKSP-CIRCUIT-BREAKER-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  description: |
+    Circuit breaker configurations protect downstream clinical systems from
+    cascading failures. States: CLOSED (normal), OPEN (halted, fast-fail),
+    HALF-OPEN (testing recovery). Each registered agent has its own instance.
+
+---
+
+global_defaults:
+  failure_threshold_percent: 50
+  minimum_calls_before_open: 10
+  evaluation_window_sec: 60
+  half_open_test_calls: 3
+  open_state_timeout_sec: 120
+  slow_call_threshold_ms: 3000
+  slow_call_rate_threshold_percent: 60
+
+---
+
+circuit_breaker_states:
+  CLOSED:
+    description: "Normal — calls pass through to agent"
+    transitions:
+      - to: OPEN
+        condition: "failure_rate > failure_threshold_percent within evaluation_window"
+      - to: OPEN
+        condition: "slow_call_rate > slow_call_rate_threshold_percent"
+
+  OPEN:
+    description: "Circuit tripped — all calls immediately rejected (fast fail)"
+    action: "return cached last-known-good result or safe fallback"
+    transitions:
+      - to: HALF_OPEN
+        condition: "open_state_timeout_sec elapsed"
+
+  HALF_OPEN:
+    description: "Testing recovery — limited calls allowed through"
+    transitions:
+      - to: CLOSED
+        condition: "all half_open_test_calls succeed"
+      - to: OPEN
+        condition: "any half_open_test_call fails"
+
+---
+
+per_agent_overrides:
+
+  agt-001:  # CDS-Sepsis-Sentinel — tightest thresholds
+    failure_threshold_percent: 25
+    minimum_calls_before_open: 5
+    evaluation_window_sec: 30
+    open_state_timeout_sec: 300
+    slow_call_threshold_ms: 2000
+    fallback_behavior: |
+      Return static "ELEVATED RISK — AI UNAVAILABLE" advisory to EHR.
+      Notify on-call clinician via PagerDuty immediately.
+
+  agt-002:  # PriorAuth-FastTrack — tolerant of slower calls
+    failure_threshold_percent: 40
+    slow_call_threshold_ms: 8000
+    open_state_timeout_sec: 60
+    fallback_behavior: |
+      Route PA request to manual queue with URGENT flag.
+      Notify Revenue Cycle team lead.
+
+  agt-003:  # ClinDoc-Assist — documentation latency more tolerable
+    failure_threshold_percent: 50
+    slow_call_threshold_ms: 5000
+    open_state_timeout_sec: 90
+    fallback_behavior: |
+      Notify clinician: "AI documentation assistant unavailable."
+      Clinician completes documentation manually.
+
+---
+
+audit_requirements:
+  log_every_state_transition: true
+  log_every_rejected_call: true
+  log_destination: "/governance/audit-logs/circuit-breaker/"
+  retention_policy_ref: "/governance/data-retention-policy.md"
