@@ -1,0 +1,142 @@
+# AI Kill Switch Protocol — RBAC Roles and Permissions
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Compliance: HIPAA 45 CFR 164.312(a)(1), ISO 13485:2016 Section 5.5
+
+metadata:
+  config_id: AKSP-RBAC-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+
+---
+
+roles:
+
+  system_watchdog:
+    description: "Automated system process — no human actor"
+    permissions:
+      - trigger_tier_0_halt
+      - write_audit_log
+      - dispatch_tier_0_alert
+    cannot:
+      - override_halt
+      - approve_reinstatement
+
+  charge_rn:
+    description: "Charge Registered Nurse"
+    permissions:
+      - trigger_tier_1_halt
+      - enter_halt_reason_code
+      - emergency_clinical_override_tier_0
+      - view_agent_status_for_own_unit
+    cannot:
+      - trigger_tier_2_halt
+      - approve_reinstatement
+      - view_system_wide_audit_logs
+
+  hospitalist:
+    description: "Hospitalist Attending Physician"
+    permissions:
+      - trigger_tier_1_halt
+      - enter_halt_reason_code
+      - emergency_clinical_override_tier_0
+      - view_agent_status_for_own_patients
+    cannot:
+      - trigger_tier_2_halt
+      - approve_reinstatement
+
+  attending_physician:
+    inherits: hospitalist
+
+  cmio:
+    description: "Chief Medical Information Officer"
+    permissions:
+      - trigger_tier_2_halt
+      - override_tier_1_halt
+      - approve_reinstatement_tier_0_and_1
+      - co_approve_reinstatement_tier_2
+      - view_all_audit_logs
+      - sign_incident_directive
+      - review_override_records
+    cannot:
+      - trigger_tier_3_halt
+      - sole_approve_reinstatement_tier_3
+
+  cmo:
+    description: "Chief Medical Officer"
+    inherits: cmio
+
+  cio:
+    description: "Chief Information Officer"
+    permissions:
+      - trigger_tier_3_halt (with_dual_auth)
+      - override_tier_2_halt (with_cmio_joint)
+      - approve_reinstatement_tier_2 (with_cmio_joint)
+      - approve_reinstatement_tier_3 (with_cmio_joint)
+      - view_all_audit_logs
+      - access_forensic_logs
+    cannot:
+      - sole_trigger_tier_3_halt
+
+  ceo:
+    description: "Chief Executive Officer"
+    permissions:
+      - trigger_tier_3_halt (with_dual_auth_cio)
+      - approve_full_reinstatement (with_cio_cmio)
+      - board_notification_authority
+    cannot:
+      - override_without_dual_auth
+
+  cso:
+    description: "Chief Security Officer"
+    permissions:
+      - trigger_tier_3_halt (with_dual_auth)
+      - access_forensic_logs
+      - initiate_forensic_hold
+    cannot:
+      - sole_trigger_tier_3_halt
+
+  compliance_officer:
+    permissions:
+      - view_all_audit_logs
+      - initiate_regulatory_halt (with_cio)
+      - request_data_retention_hold
+    cannot:
+      - trigger_halt_directly
+
+  legal_counsel:
+    permissions:
+      - initiate_judicial_hold
+      - view_relevant_audit_logs
+      - request_data_retention_hold
+    cannot:
+      - trigger_halt_directly
+
+---
+
+halt_reason_codes:
+  description: "Clinician-entered reason codes for Tier 1 manual halts"
+  codes:
+    RC-001: "AI recommendation inconsistent with clinical presentation"
+    RC-002: "Agent latency impacting care delivery"
+    RC-003: "Unexpected or unexplained agent behavior"
+    RC-004: "Patient or family request to remove AI from care"
+    RC-005: "Clinician preference — manual workflow preferred"
+    RC-006: "Regulatory or compliance concern"
+    RC-007: "Suspected PHI exposure"
+    RC-008: "Other — narrative required"
+
+---
+
+phi_masking_in_logs:
+  masked_fields:
+    - patient.name
+    - patient.date_of_birth
+    - patient.ssn
+    - patient.address
+    - patient.phone
+    - patient.email
+    - patient.mrn
+  masking_token: "[MASKED-PHI]"
+  masking_applies_to: "all audit log writes and alert dispatches"
