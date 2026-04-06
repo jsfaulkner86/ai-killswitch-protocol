@@ -1,0 +1,113 @@
+# AI Kill Switch Protocol — Audit Log Schema
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Compliance: FDA 21 CFR Part 11.10(a)(e), HIPAA 45 CFR 164.312(b)
+
+metadata:
+  schema_id: AKSP-AUDIT-SCHEMA-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  description: |
+    Defines the immutable audit log schema for all kill switch events.
+    Logs must be tamper-evident, append-only, and retained per
+    /governance/data-retention-policy.md. All events are written to an
+    immutable store (WORM-compliant) and forwarded to the SIEM.
+
+---
+
+base_event_schema:
+  required_fields:
+    audit_event_id:
+      type: "string (UUID v4)"
+      description: "Globally unique event identifier"
+      example: "f7a3b2c1-1234-4abc-9def-000000000001"
+
+    event_type:
+      type: "string (enum)"
+      allowed_values:
+        - KILL_SWITCH_TRIGGER
+        - KILL_SWITCH_HALT
+        - OVERRIDE_REQUESTED
+        - OVERRIDE_APPROVED
+        - OVERRIDE_DENIED
+        - REINSTATEMENT_REQUESTED
+        - REINSTATEMENT_APPROVED
+        - REINSTATEMENT_COMPLETED
+        - DRIFT_CHECK
+        - FHIR_SYNC_VALIDATION
+        - IOT_VALIDATION
+        - CONFIDENCE_CHECK
+        - CIRCUIT_BREAKER_STATE_CHANGE
+        - WATCHDOG_ALERT
+        - ALERT_DISPATCHED
+        - TEST_DRILL_EVENT
+
+    timestamp:
+      type: "string (ISO 8601 UTC)"
+      example: "2026-04-06T14:32:01.123456Z"
+
+    agent_or_twin_id:
+      type: "string"
+      description: "ID from agent-registry.yaml or twin-registry.yaml"
+
+    trigger_id:
+      type: "string (nullable)"
+      description: "AT-001 through AT-008 or MT-001 through MT-004"
+
+    tier:
+      type: "integer (0–3, nullable)"
+
+    actor:
+      type: "object (nullable)"
+      fields:
+        name: string
+        role: string
+        employee_id: string
+        npi: "string (nullable — only for clinicians)"
+
+    system_component:
+      type: "string"
+      description: "Which system component generated this event"
+      examples: ["watchdog", "drift-detection", "fhir-r4-client", "alert-dispatcher"]
+
+    details:
+      type: "object"
+      description: "Event-specific payload — structured JSON"
+
+    phi_present:
+      type: "boolean"
+      description: "Whether PHI is referenced in this event"
+      note: "PHI fields must be masked per /governance/roles-and-permissions.yaml"
+
+  immutability_requirements:
+    storage: "WORM-compliant append-only store (S3 Object Lock, Azure Immutable Blob, or equivalent)"
+    hash_algorithm: "SHA-256 per event"
+    chain_hash: true    # Each event includes hash of previous event for tamper detection
+    siem_forward: true  # Forward all events to SIEM within 30 seconds
+
+---
+
+example_kill_switch_event:
+  audit_event_id: "f7a3b2c1-0000-4abc-9def-000000000099"
+  event_type: "KILL_SWITCH_HALT"
+  timestamp: "2026-04-06T14:32:01.123456Z"
+  agent_or_twin_id: "agt-001"
+  trigger_id: "AT-001"
+  tier: 0
+  actor: null
+  system_component: "watchdog"
+  details:
+    confidence_score: 0.61
+    minimum_threshold: 0.85
+    output_type: "sepsis_risk_score"
+    halt_sla_ms: 500
+    actual_halt_ms: 312
+    in_flight_transactions_rolled_back: 2
+    patient_data_preserved: true
+    ehr_disconnected: true
+  phi_present: false
+
+---
+
+retention_policy_ref: "/governance/data-retention-policy.md"
