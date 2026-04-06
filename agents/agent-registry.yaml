@@ -1,0 +1,139 @@
+# AI Kill Switch Protocol — Agent Registry
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Compliance: HIPAA 45 CFR 164.312, FDA 21 CFR Part 11, ISO 13485:2016
+
+metadata:
+  registry_id: AKSP-AGENT-REGISTRY-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  description: |
+    Canonical registry of all AI agents operating under the Kill Switch Protocol.
+    Every agent deployed in a healthcare environment must be registered here
+    before it is permitted to interact with patient data, EHR systems, or
+    clinical workflows.
+
+---
+
+registration_requirements:
+  mandatory_fields:
+    - agent_id
+    - agent_name
+    - agent_type
+    - version
+    - deployment_date
+    - data_classification       # PHI / PII / Operational / Public
+    - ehr_integrations
+    - scope_boundaries
+    - confidence_threshold_ref  # Pointer to /agents/confidence-threshold.yaml
+    - watchdog_enabled
+    - circuit_breaker_ref       # Pointer to /agents/circuit-breaker.yaml
+    - owning_team
+    - clinical_liaison          # Named clinician sponsor with NPI
+
+  approved_agent_types:
+    - clinical_decision_support
+    - care_coordination
+    - autonomous_triage
+    - medical_coding
+    - prior_authorization
+    - patient_outreach
+    - pharmacy_verification
+    - scheduling_optimization
+    - revenue_cycle_automation
+    - clinical_documentation_assistant
+
+---
+
+registered_agents:
+
+  - agent_id: "agt-001"
+    agent_name: "CDS-Sepsis-Sentinel"
+    agent_type: clinical_decision_support
+    version: "2.1.0"
+    deployment_date: "2026-01-15"
+    status: ACTIVE
+    data_classification: PHI
+    ehr_integrations:
+      - system: Epic
+        connection_type: FHIR_R4
+        endpoint_ref: "/integrations/epic-webhook.yaml"
+    scope_boundaries:
+      - "Read patient vitals, labs, nursing notes via FHIR R4"
+      - "Generate sepsis risk score (0.0–1.0)"
+      - "Write sepsis alert to Epic Best Practice Advisory (BPA)"
+      - "Notify on-call clinician via PagerDuty"
+      - "PROHIBITED: Write orders, modify medications, alter care plans"
+    confidence_threshold_ref: "/agents/confidence-threshold.yaml#sepsis-sentinel"
+    watchdog_enabled: true
+    circuit_breaker_ref: "/agents/circuit-breaker.yaml#agt-001"
+    owning_team: "Clinical AI — Critical Care"
+    clinical_liaison:
+      name: "[Attending Physician Name]"
+      npi: "[NPI_PLACEHOLDER]"
+      role: "Hospitalist Lead"
+
+  - agent_id: "agt-002"
+    agent_name: "PriorAuth-FastTrack"
+    agent_type: prior_authorization
+    version: "1.3.2"
+    deployment_date: "2026-02-01"
+    status: ACTIVE
+    data_classification: PHI
+    ehr_integrations:
+      - system: Epic
+        connection_type: FHIR_R4
+        endpoint_ref: "/integrations/epic-webhook.yaml"
+    scope_boundaries:
+      - "Read clinical notes, diagnoses, procedure codes via FHIR R4"
+      - "Submit prior auth requests to payer APIs"
+      - "Update Epic work queue with PA status"
+      - "PROHIBITED: Approve or deny clinical requests autonomously"
+    confidence_threshold_ref: "/agents/confidence-threshold.yaml#priorauth-fasttrack"
+    watchdog_enabled: true
+    circuit_breaker_ref: "/agents/circuit-breaker.yaml#agt-002"
+    owning_team: "Revenue Cycle AI"
+    clinical_liaison:
+      name: "[CMIO Name]"
+      npi: "[NPI_PLACEHOLDER]"
+      role: "CMIO"
+
+  - agent_id: "agt-003"
+    agent_name: "ClinDoc-Assist"
+    agent_type: clinical_documentation_assistant
+    version: "3.0.1"
+    deployment_date: "2026-03-10"
+    status: ACTIVE
+    data_classification: PHI
+    ehr_integrations:
+      - system: Epic
+        connection_type: FHIR_R4
+        endpoint_ref: "/integrations/epic-webhook.yaml"
+    scope_boundaries:
+      - "Read encounter notes, transcription audio via EHR API"
+      - "Generate draft SOAP note for clinician review"
+      - "Suggest ICD-10 and CPT codes"
+      - "PROHIBITED: Submit finalized notes without clinician attestation"
+    confidence_threshold_ref: "/agents/confidence-threshold.yaml#clindoc-assist"
+    watchdog_enabled: true
+    circuit_breaker_ref: "/agents/circuit-breaker.yaml#agt-003"
+    owning_team: "Clinical AI — Documentation"
+    clinical_liaison:
+      name: "[CMIO Name]"
+      npi: "[NPI_PLACEHOLDER]"
+      role: "CMIO"
+
+---
+
+deregistration_process:
+  steps:
+    - 1: "Submit deregistration request to AI Governance Committee"
+    - 2: "CMIO sign-off required for any agent with PHI scope"
+    - 3: "30-day wind-down period unless emergency deregistration"
+    - 4: "All audit logs retained per /governance/data-retention-policy.md"
+    - 5: "Deregistration event logged immutably with reason code"
+  emergency_deregistration:
+    authority: "CMIO or CIO"
+    sla: "Immediate"
+    audit_required: true
