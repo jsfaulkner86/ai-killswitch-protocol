@@ -1,0 +1,81 @@
+# AI Kill Switch Protocol — Confidence Threshold Configuration
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+
+metadata:
+  config_id: AKSP-CONFIDENCE-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+  description: |
+    Defines minimum confidence thresholds for each registered AI agent.
+    Outputs below threshold trigger AT-001 (automated Tier 0 halt).
+    Thresholds are clinically validated and must be reviewed quarterly.
+
+---
+
+global_defaults:
+  minimum_confidence: 0.75
+  action_on_breach: "immediate_halt"
+  alert_on_approach:
+    warning_threshold: 0.80   # Warn when within 5% of minimum
+    notify: ["owning_team", "on_call_clinician"]
+
+---
+
+per_agent_thresholds:
+
+  sepsis-sentinel:
+    agent_id: "agt-001"
+    minimum_confidence: 0.85
+    rationale: |
+      Sepsis alerts directly influence life-critical clinical decisions.
+      False positives cause care disruption; false negatives may cost lives.
+      Higher threshold reduces hallucination risk in high-acuity context.
+    output_types:
+      - output: "sepsis_risk_score"
+        min_confidence: 0.85
+      - output: "bpa_alert_text"
+        min_confidence: 0.80
+    review_date: "2026-07-06"
+    reviewed_by: "[CMIO Name, NPI]"
+
+  priorauth-fasttrack:
+    agent_id: "agt-002"
+    minimum_confidence: 0.78
+    rationale: |
+      Lower operational risk than CDS. Incorrect PA submissions cause
+      delays but not direct patient harm. Threshold reflects balance
+      between throughput and accuracy.
+    output_types:
+      - output: "pa_submission_payload"
+        min_confidence: 0.78
+      - output: "denial_prediction"
+        min_confidence: 0.82    # Denial predictions held to higher standard
+    review_date: "2026-07-06"
+    reviewed_by: "[CMIO Name, NPI]"
+
+  clindoc-assist:
+    agent_id: "agt-003"
+    minimum_confidence: 0.75
+    rationale: |
+      All ClinDoc output requires clinician attestation before submission.
+      Human review is the final safety gate, allowing slightly lower
+      autonomous confidence threshold.
+    output_types:
+      - output: "soap_note_draft"
+        min_confidence: 0.75
+      - output: "icd10_suggestion"
+        min_confidence: 0.80    # Coding suggestions affect billing and records
+      - output: "cpt_suggestion"
+        min_confidence: 0.80
+    review_date: "2026-07-06"
+    reviewed_by: "[CMIO Name, NPI]"
+
+---
+
+calibration_requirements:
+  frequency: "quarterly"
+  method: "retrospective_outcome_correlation"
+  documentation_required: true
+  log_location: "/governance/audit-logs/confidence-calibration/"
