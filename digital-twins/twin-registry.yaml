@@ -1,0 +1,109 @@
+# AI Kill Switch Protocol — Digital Twin Registry
+# The Faulkner Group | Version 1.0.0 | 2026-04-06
+# Compliance: HIPAA 45 CFR 164.312, ISO 13485:2016
+
+metadata:
+  registry_id: AKSP-TWIN-REGISTRY-001
+  version: "1.0.0"
+  effective_date: "2026-04-06"
+  owner: "The Faulkner Group"
+  classification: "RESTRICTED — Clinical Safety Critical"
+
+---
+
+registration_requirements:
+  mandatory_fields:
+    - twin_id
+    - twin_name
+    - twin_type
+    - source_patient_population  # or "operational" for workflow twins
+    - fhir_resource_types        # List of FHIR R4 resources consumed
+    - data_classification
+    - simulation_engine
+    - drift_detection_ref        # Pointer to /digital-twins/drift-detection.py
+    - fhir_sync_validation_ref   # Pointer to /digital-twins/fhir-sync-validation.yaml
+    - sim_guard_ref              # Pointer to /digital-twins/sim-guard.yaml
+    - owning_team
+    - clinical_liaison
+
+  approved_twin_types:
+    - patient_in_silico
+    - population_health_model
+    - operational_workflow_twin
+    - hospital_capacity_twin
+    - surgical_simulation_twin
+
+---
+
+registered_twins:
+
+  - twin_id: "twn-001"
+    twin_name: "PatientTwin-ICU"
+    twin_type: patient_in_silico
+    version: "1.4.0"
+    deployment_date: "2026-02-15"
+    status: ACTIVE
+    source_patient_population: "ICU census — real-time FHIR feed"
+    data_classification: PHI
+    fhir_resource_types:
+      - Patient
+      - Observation
+      - MedicationAdministration
+      - Condition
+      - Procedure
+      - DeviceMetric
+    simulation_engine: "MATLAB Simulink R2025b"
+    drift_detection_ref: "/digital-twins/drift-detection.py#twn-001"
+    fhir_sync_validation_ref: "/digital-twins/fhir-sync-validation.yaml#twn-001"
+    sim_guard_ref: "/digital-twins/sim-guard.yaml#twn-001"
+    owning_team: "Clinical AI — Critical Care"
+    clinical_liaison:
+      name: "[ICU Medical Director Name]"
+      npi: "[NPI_PLACEHOLDER]"
+      role: "ICU Medical Director"
+
+  - twin_id: "twn-002"
+    twin_name: "OpsFlowTwin-ED"
+    twin_type: operational_workflow_twin
+    version: "2.0.0"
+    deployment_date: "2026-03-01"
+    status: ACTIVE
+    source_patient_population: "ED patient flow — census + EHR operational data"
+    data_classification: PHI
+    fhir_resource_types:
+      - Patient
+      - Encounter
+      - Location
+      - Slot
+    simulation_engine: "AnyLogic 8.9"
+    drift_detection_ref: "/digital-twins/drift-detection.py#twn-002"
+    fhir_sync_validation_ref: "/digital-twins/fhir-sync-validation.yaml#twn-002"
+    sim_guard_ref: "/digital-twins/sim-guard.yaml#twn-002"
+    owning_team: "Operational AI — Patient Flow"
+    clinical_liaison:
+      name: "[ED Medical Director Name]"
+      npi: "[NPI_PLACEHOLDER]"
+      role: "ED Medical Director"
+
+  - twin_id: "twn-003"
+    twin_name: "CapacityTwin-System"
+    twin_type: hospital_capacity_twin
+    version: "1.1.0"
+    deployment_date: "2026-03-20"
+    status: ACTIVE
+    source_patient_population: "Enterprise — all inpatient units"
+    data_classification: Operational
+    fhir_resource_types:
+      - Location
+      - Encounter
+      - Slot
+      - Schedule
+    simulation_engine: "AnyLogic 8.9"
+    drift_detection_ref: "/digital-twins/drift-detection.py#twn-003"
+    fhir_sync_validation_ref: "/digital-twins/fhir-sync-validation.yaml#twn-003"
+    sim_guard_ref: "/digital-twins/sim-guard.yaml#twn-003"
+    owning_team: "Operational AI — Capacity Management"
+    clinical_liaison:
+      name: "[CNO Name]"
+      npi: "[NPI_PLACEHOLDER]"
+      role: "Chief Nursing Officer"
