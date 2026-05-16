@@ -1,0 +1,57 @@
+name: CI
+
+# ------------------------------------------------------------------------------
+# AI Kill Switch Protocol CI Workflow — Developer Template
+#
+# STATUS: Stubbed. All steps echo and pass.
+# Activate each step by replacing the echo with the real command.
+#
+# Step activation checklist:
+#   [ ] Install deps   — uncomment pip install block
+#   [ ] Lint (ruff)    — replace echo with: ruff check integrations/ digital-twins/ tests/
+#   [ ] Format (black) — replace echo with: black --check integrations/ digital-twins/ tests/
+#   [ ] Tests          — replace echo with: pytest tests/ -v --tb=short
+# ------------------------------------------------------------------------------
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        # TODO: uncomment when ready to activate
+        # run: |
+        #   python -m pip install --upgrade pip
+        #   pip install -r requirements.txt
+        #   pip install -r requirements-dev.txt
+        run: echo "[stub] install deps — not yet active"
+
+      - name: Lint (ruff)
+        # TODO: replace echo with: ruff check integrations/ digital-twins/ tests/
+        run: echo "[stub] ruff lint — not yet active"
+
+      - name: Format check (black)
+        # TODO: replace echo with: black --check integrations/ digital-twins/ tests/
+        run: echo "[stub] black format check — not yet active"
+
+      - name: Run tests
+        # TODO: replace echo with: pytest tests/ -v --tb=short
+        # env:
+        #   ORCHESTRATION_HALT_URL: https://mock-halt.example.com/halt
+        #   FHIR_BASE_URL: https://mock-fhir.example.com/api/FHIR/R4
+        run: echo "[stub] pytest — not yet active"
