@@ -38,7 +38,7 @@
 
 The **AI Kill Switch Protocol (AKSP)** is a structured governance framework that ensures every AI agent and digital twin operating in a healthcare environment can be **safely halted, auditably overridden, and compliantly reinstated** — in milliseconds or minutes depending on the threat tier.
 
-Built for health systems that can't afford to find out what happens when AI goes wrong in a clinical environment.
+Built for health systems that can’t afford to find out what happens when AI goes wrong in a clinical environment.
 
 ```
 Anomaly Detected  →  Watchdog Fires  →  Agent Halted (<500ms)  →  Audit Logged  →  Clinician Notified
@@ -211,6 +211,12 @@ pytest tests/ -v
     </td>
   </tr>
 </table>
+
+---
+
+## Disclaimer
+
+This repository is a **reference governance framework and implementation template** — not a cleared medical device, not legal advice, and not a guarantee of regulatory compliance. Compliance mappings (HIPAA, FDA 21 CFR Part 11, ISO 13485, ONC HTI-1) are for architectural reference only. Independent validation, legal review, and regulatory clearance are required before production deployment in any clinical environment. See [DISCLAIMER.md](./DISCLAIMER.md) for full terms.
 
 ---
 
